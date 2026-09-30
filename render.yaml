@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: amn-delivery-socket-server
+    env: node
+    plan: starter
+    region: frankfurt # Or oregon / ohio / singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: BACKEND_API_BASE_URL
+        value: https://api.amnplc.com/api
+      - key: VALIDATION_MODE
+        value: strict
+      - key: ORDER_CACHE_TTL_SECONDS
+        value: 30
+      - key: MAX_LOCATION_HISTORY
+        value: 100
