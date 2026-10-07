@@ -93,37 +93,54 @@ export class OrderService {
         return null;
       }
 
-      const data = response.data?.data !== undefined ? response.data?.data : response.data;
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        return null;
-      }
+      const res = response.data;
+      if (!res) return null;
 
-      // Check if data is actually an order object (has id, order_number, or user_id)
-      if (typeof data !== 'object' || (!data.id && !data.order_id && !data.order_number && !data.user_id)) {
+      // AMN API returns { data: [...items], order_status: { id: 15, ... } }
+      // When order is not found, it returns { message: "...", data: [], order_status: null }
+      const statusObj: Record<string, any> | null =
+        (res.order_status && typeof res.order_status === 'object')
+          ? res.order_status
+          : (res.data && typeof res.data === 'object' && !Array.isArray(res.data))
+            ? res.data
+            : null;
+
+      const itemsList: any[] = Array.isArray(res.data) ? res.data : [];
+      const firstItem: Record<string, any> | null = itemsList.length > 0 ? itemsList[0] : null;
+
+      // An order MUST have an order ID in statusObj or firstItem, or customer_id in statusObj
+      const idVal = statusObj?.id ?? statusObj?.order_id ?? statusObj?.order_number ?? firstItem?.order_id;
+      if (!idVal && !statusObj?.customer_id && !statusObj?.user_id) {
         return null;
       }
 
       const activeOrder: ActiveOrder = {
-        id: data.id ?? orderKey,
-        orderNumber: data.order_number ?? data.order_id ?? `AMN-${orderKey}`,
-        status: data.status ?? '1',
-        driverId: String(data.driver_id ?? data.delivery_man_id ?? data.driver?.id ?? ''),
-        customerId: String(data.user_id ?? data.customer_id ?? data.customer?.id ?? ''),
-        restaurantId: data.restaurant_id ?? data.store_id,
-        restaurantName: data.restaurant_name ?? data.property_name,
-        customerName: `${data.customer?.f_name ?? data.f_name ?? ''} ${data.customer?.l_name ?? data.l_name ?? ''}`.trim(),
-        driverName: `${data.driver?.f_name ?? ''} ${data.driver?.l_name ?? ''}`.trim(),
-        pickupLocation: data.restaurant_latitude && data.restaurant_longitude ? {
-          latitude: parseFloat(data.restaurant_latitude),
-          longitude: parseFloat(data.restaurant_longitude),
-          address: data.restaurant_address ?? data.location,
+        id: idVal ?? orderKey,
+        orderNumber: String(statusObj?.order_number ?? statusObj?.order_id ?? `AMN-${idVal ?? orderKey}`),
+        status: String(statusObj?.status ?? firstItem?.order_status ?? '0'),
+        driverId: String(statusObj?.driver_id ?? statusObj?.delivery_man_id ?? statusObj?.driver?.id ?? firstItem?.driver_id ?? ''),
+        customerId: String(statusObj?.customer_id ?? statusObj?.user_id ?? statusObj?.customer?.id ?? firstItem?.customer_id ?? ''),
+        restaurantId: statusObj?.property_id ?? statusObj?.restaurant_id ?? statusObj?.store_id ?? firstItem?.property_id,
+        restaurantName: firstItem?.property ?? statusObj?.restaurant_name ?? statusObj?.property_name,
+        customerName: firstItem?.customer_first_name
+          ? `${firstItem.customer_first_name} ${firstItem.customer_last_name ?? ''}`.trim()
+          : `${statusObj?.customer?.f_name ?? statusObj?.f_name ?? ''} ${statusObj?.customer?.l_name ?? statusObj?.l_name ?? ''}`.trim(),
+        driverName: `${statusObj?.driver?.f_name ?? firstItem?.driver_name ?? ''} ${statusObj?.driver?.l_name ?? ''}`.trim(),
+        pickupLocation: (statusObj?.restaurant_latitude && statusObj?.restaurant_longitude) ? {
+          latitude: parseFloat(statusObj.restaurant_latitude),
+          longitude: parseFloat(statusObj.restaurant_longitude),
+          address: statusObj.restaurant_address ?? statusObj.location,
         } : undefined,
-        deliveryLocation: data.delivery_latitude && data.delivery_longitude ? {
-          latitude: parseFloat(data.delivery_latitude),
-          longitude: parseFloat(data.delivery_longitude),
-          address: data.delivery_address,
+        deliveryLocation: (statusObj?.latitude && statusObj?.longitude) ? {
+          latitude: parseFloat(statusObj.latitude),
+          longitude: parseFloat(statusObj.longitude),
+          address: statusObj.location ?? statusObj.delivery_address,
+        } : (statusObj?.delivery_latitude && statusObj?.delivery_longitude) ? {
+          latitude: parseFloat(statusObj.delivery_latitude),
+          longitude: parseFloat(statusObj.delivery_longitude),
+          address: statusObj.delivery_address,
         } : undefined,
-        raw: data,
+        raw: res,
         verifiedAt: now,
       };
 

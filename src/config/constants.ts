@@ -32,9 +32,12 @@ export const SOCKET_EVENTS = {
  * Inactive statuses (e.g. 0: pending, 4: delivered, 5: cancelled) will be rejected.
  */
 export const ACTIVE_ORDER_STATUSES = [
+  '0', // Pending / Order placed (awaiting driver assignment)
   '1', // Assigned to driver
   '2', // Heading to store / store preparing
   '3', // Order picked up / heading to customer
+  'pending',
+  'placed',
   'assigned',
   'accepted',
   'heading_to_store',
