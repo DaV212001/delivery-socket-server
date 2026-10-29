@@ -29,23 +29,33 @@ export const SOCKET_EVENTS = {
 
 /**
  * Valid active order statuses that permit location tracking and real-time communication.
- * Inactive statuses (e.g. 0: pending, 4: delivered, 5: cancelled) will be rejected.
+ * Status codes:
+ * 1: Accepted
+ * 2: Driver on the way to shop
+ * 3: Driver on the way to you
+ * Inactive / terminal statuses (4: Delivered, 5: Cancelled) are completed/rejected from active tracking.
  */
 export const ACTIVE_ORDER_STATUSES = [
-  '0', // Pending / Order placed (awaiting driver assignment)
-  '1', // Assigned to driver
-  '2', // Heading to store / store preparing
-  '3', // Order picked up / heading to customer
+  '0', // Pending / Order placed (awaiting acceptance)
+  '1', // Accepted
+  '2', // Driver on the way to shop
+  '3', // Driver on the way to you
   'pending',
   'placed',
   'assigned',
   'accepted',
+  'order_accepted',
+  'driver_on_way_to_shop',
+  'driver_to_shop',
   'heading_to_store',
   'at_store',
   'order_picked_up',
   'picked_up',
+  'driver_on_way_to_you',
+  'driver_to_you',
   'heading_to_customer',
   'arrived',
+  'in_transit',
   'out_for_delivery',
 ] as const;
 

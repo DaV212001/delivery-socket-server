@@ -201,8 +201,34 @@ export class OrderService {
 
     // 3. Role & Identity Matching Check
     if (role === 'driver') {
-      const assignedDriver = String(order.driverId).trim();
-      if (!assignedDriver || assignedDriver !== userKey) {
+      let assignedDriver = String(order.driverId ?? '').trim();
+      if (!assignedDriver || assignedDriver === 'null' || assignedDriver === 'undefined' || assignedDriver === '') {
+        // If driver was not yet assigned in cached data, retry fresh from API
+        this.invalidateCache(orderKey);
+        const freshOrder = await this.getOrderDetails(orderKey, authToken);
+        if (freshOrder) {
+          assignedDriver = String(freshOrder.driverId ?? '').trim();
+          order.driverId = freshOrder.driverId;
+        }
+      }
+
+      // If backend order has no driver assigned yet, but authenticated driver connects:
+      // Bind driver to the active tracking session so location streaming is never blocked
+      if (!assignedDriver || assignedDriver === 'null' || assignedDriver === 'undefined' || assignedDriver === '') {
+        logger.info(`Binding driver '${userKey}' to active Order #${orderKey} (previously unassigned driver on backend)`);
+        order.driverId = userKey;
+        assignedDriver = userKey;
+        this.updateCachedDriver(orderKey, userKey);
+      } else if (assignedDriver !== userKey) {
+        // Cached order might be stale; invalidate and check once more from backend
+        if (this.orderCache.has(orderKey)) {
+          this.invalidateCache(orderKey);
+          const freshOrder = await this.getOrderDetails(orderKey, authToken);
+          if (freshOrder && String(freshOrder.driverId ?? '').trim() === userKey) {
+            return freshOrder;
+          }
+        }
+
         logger.warn(
           `Unauthorized driver access attempt: userId '${userKey}' attempted to track order #${orderKey} assigned to driver '${assignedDriver}'`
         );
@@ -252,6 +278,18 @@ export class OrderService {
     const cached = this.orderCache.get(key);
     if (cached) {
       cached.order.status = newStatus;
+      cached.cachedAt = Date.now();
+    }
+  }
+
+  /**
+   * Updates an order driver in the local cache
+   */
+  public updateCachedDriver(orderId: string | number, driverId: string | number): void {
+    const key = String(orderId);
+    const cached = this.orderCache.get(key);
+    if (cached) {
+      cached.order.driverId = driverId;
       cached.cachedAt = Date.now();
     }
   }

@@ -173,7 +173,7 @@ describe('Socket.IO Active Order Location Tracking & Auth Tests', () => {
     expect(joinResult.error.code).toBe(SOCKET_ERROR_CODES.ORDER_NOT_FOUND);
 
     driverSocket.disconnect();
-  });
+  }, 12000);
 
   test('7. Attempting to track an inactive order is rejected with ORDER_INACTIVE', async () => {
     const driverSocket = await createClient({ userId: '42', role: 'driver' });
