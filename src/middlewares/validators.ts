@@ -4,6 +4,7 @@ export const joinOrderSchema = z.object({
   orderId: z.union([z.string(), z.number()]).transform((val) => String(val)),
   userId: z.union([z.string(), z.number()]).transform((val) => String(val)),
   role: z.enum(['driver', 'customer', 'admin']),
+  orderType: z.string().optional(),
   token: z.string().optional(),
 });
 

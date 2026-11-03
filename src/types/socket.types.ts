@@ -12,6 +12,7 @@ export interface JoinOrderRequest {
   orderId: string | number;
   userId: string | number;
   role: OrderPeerRole;
+  orderType?: 'delivery' | 'courirer' | 'courier' | 'company' | 'corporate' | 'pickup' | string;
   token?: string;
 }
 

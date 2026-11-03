@@ -57,7 +57,7 @@ export class OrderRoomHandler {
         return;
       }
 
-      const { orderId, userId, role, token } = parseResult.data;
+      const { orderId, userId, role, orderType, token } = parseResult.data;
 
       // 2. Security & Active Status Authentication Gate
       // Verifies order is active, driver matches order.driver_id, customer matches order.customer_id
@@ -66,7 +66,8 @@ export class OrderRoomHandler {
         orderId,
         userId,
         role,
-        effectiveToken
+        effectiveToken,
+        orderType
       );
 
       // 3. Join Socket.IO Rooms
